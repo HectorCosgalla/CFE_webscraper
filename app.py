@@ -1,53 +1,41 @@
 import requests as request
 from bs4 import BeautifulSoup
 
-request_object = request.Session()
+def updating_data(request_object, data, url):
+    final1 = request_object.post(url,verify=False, data=data)
+    temp_html = BeautifulSoup(final1.content,"lxml")
+    viewstate = temp_html.find_all("input", type="hidden")
+    data['__VIEWSTATE'] = viewstate[0]['value']
+    data['__EVENTVALIDATION'] = viewstate[2]['value']
+    return data, temp_html
 
-url = "https://app.cfe.mx/Aplicaciones/CCFE/Tarifas/TarifasCRENegocio/Tarifas/GranDemandaMTO.aspx"
+def getting_list(html_code, request_object,url):
+    selects = html_code.find_all("select",attrs={"class":"input"})
+    viewstate = html_code.find_all("input", type="hidden")
+    values = [2022, 6, 31, 2328, 22]
+    data = {}
 
-fetching_request_soup = request_object.get(url)
+    for i in range(3):
+        data.update({viewstate[i]['name'] : viewstate[i]['value']})
+        data.update({selects[i]['name'] : values[i]})
+        if (i == 2):
+            data, final_html = updating_data(request_object, data, url)
+    
+    for i in range(2):
+        data.update({selects[i+3]['name'] : values[i+3]})
+        data, final_html = updating_data(request_object, data, url)
+    print(final_html)
 
-soup = BeautifulSoup(fetching_request_soup.content, "lxml")
-viewstate = soup.find_all("input", type="hidden")
-list_of_selects = soup.find_all("select",attrs={"class":"input"})
+def main():
+    request_object = request.Session()
 
-data = {
-    viewstate[0]['name']:viewstate[0]['value'],
-    viewstate[1]['name']:viewstate[1]['value'],
-    viewstate[2]['name']:viewstate[2]['value'],
-    list_of_selects[0]['name']:2022,
-    list_of_selects[1]['name']:6,
-    list_of_selects[2]['name']:31
-}
+    url = "https://app.cfe.mx/Aplicaciones/CCFE/Tarifas/TarifasCRENegocio/Tarifas/GranDemandaMTO.aspx"
 
-final1 = request_object.post(url,verify=False, data=data)
-soup1 = BeautifulSoup(final1.content,"lxml")
-viewstate = soup1.find_all("input", type="hidden")
+    fetching_request_soup = request_object.get(url)
 
-data = {
-    viewstate[0]['name']:viewstate[0]['value'],
-    viewstate[1]['name']:viewstate[1]['value'],
-    viewstate[2]['name']:viewstate[2]['value'],
-    list_of_selects[0]['name']:2022,
-    list_of_selects[1]['name']:6,
-    list_of_selects[2]['name']:31,
-    list_of_selects[3]['name']:2328
-}
+    pre_html_code = BeautifulSoup(fetching_request_soup.content, "lxml")
 
-final1 = request_object.post(url,verify=False, data=data)
-soup1 = BeautifulSoup(final1.content,"lxml")
-viewstate = soup1.find_all("input", type="hidden")
+    getting_list(pre_html_code, request_object, url)
 
-data = {
-    viewstate[0]['name']:viewstate[0]['value'],
-    viewstate[1]['name']:viewstate[1]['value'],
-    viewstate[2]['name']:viewstate[2]['value'],
-    list_of_selects[0]['name']:2022,
-    list_of_selects[1]['name']:6,
-    list_of_selects[2]['name']:31,
-    list_of_selects[3]['name']:2328,
-    list_of_selects[4]['name']:22
-}
-final1 = request_object.post(url,verify=False, data=data)
-soup1 = BeautifulSoup(final1.content,"lxml")
-print(soup1)
+if __name__ == "__main__":
+    main()
