@@ -1,15 +1,16 @@
 import requests as request
+import json
 from bs4 import BeautifulSoup
 
 def updating_data(request_object, data, url):
-    final1 = request_object.post(url,verify=False, data=data)
-    temp_html = BeautifulSoup(final1.content,"lxml")
+    temp_request_object = request_object.post(url,verify=False, data=data)
+    temp_html = BeautifulSoup(temp_request_object.content,"lxml")
     viewstate = temp_html.find_all("input", type="hidden")
     data['__VIEWSTATE'] = viewstate[0]['value']
     data['__EVENTVALIDATION'] = viewstate[2]['value']
     return data, temp_html
 
-def getting_list(html_code, request_object,url):
+def getting_table(html_code, request_object,url):
     selects = html_code.find_all("select",attrs={"class":"input"})
     viewstate = html_code.find_all("input", type="hidden")
     values = [2022, 6, 31, 2328, 22]
@@ -24,7 +25,9 @@ def getting_list(html_code, request_object,url):
     for i in range(2):
         data.update({selects[i+3]['name'] : values[i+3]})
         data, final_html = updating_data(request_object, data, url)
-    print(final_html)
+    
+    price_table = final_html.find_all("table", attrs={"class":"table"})
+    return price_table
 
 def main():
     request_object = request.Session()
@@ -35,7 +38,24 @@ def main():
 
     pre_html_code = BeautifulSoup(fetching_request_soup.content, "lxml")
 
-    getting_list(pre_html_code, request_object, url)
+    price_table = getting_table(pre_html_code, request_object, url)
+
+    parsed_price_table = BeautifulSoup(str(price_table), "html.parser")
+
+    print(parsed_price_table)
+    
+    rows = parsed_price_table.find_all("tr")
+
+    data = []
+    for row in rows:
+        cells = row.find_all("td")
+        items = []
+        for index in cells:
+            items.append(index.text.strip())
+        data.append(items)
+    print(json.dumps(data, indent=4))
+
+    #print(json.dumps(dict(table_data)))
 
 if __name__ == "__main__":
     main()
